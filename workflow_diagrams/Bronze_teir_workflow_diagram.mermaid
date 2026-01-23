@@ -1,0 +1,45 @@
+```mermaid
+graph TB
+    Start([📧 New Email Arrives]) --> Gmail[Gmail Inbox]
+    
+    Gmail --> Watcher[🔍 Gmail Watcher<br/>Python Script<br/>Checks every 2 min]
+    
+    Watcher --> Filter{Email Match?<br/>unread + important}
+    
+    Filter -->|No| Wait[⏳ Keep Watching]
+    Wait --> Watcher
+    
+    Filter -->|Yes| Create[📝 Create .md File<br/>in /Needs_Action]
+    
+    Create --> Vault[(🗂️ Obsidian Vault<br/>/Needs_Action)]
+    
+    Vault --> Orchestrator[⚙️ Orchestrator<br/>Monitors folders<br/>every 60 sec]
+    
+    Orchestrator --> Detect{New Files?}
+    
+    Detect -->|No| Monitor[👀 Keep Monitoring]
+    Monitor --> Orchestrator
+    
+    Detect -->|Yes| Trigger[🚀 Trigger Claude Code]
+    
+    Trigger --> Claude[🤖 Claude Code<br/>+ Agent Skill]
+    
+    Claude --> Read[📖 Read Email<br/>Extract Details]
+    Read --> Assess[🎯 Assess Priority<br/>High/Medium/Low]
+    Assess --> Draft[✍️ Draft Response<br/>if needed]
+    Draft --> Update[📊 Update Dashboard.md]
+    Update --> Move[📁 Move to /Done]
+    
+    Move --> Done[(✅ /Done Folder<br/>Archived)]
+    
+    Done --> Complete([✨ Task Complete!])
+    
+    style Start fill:#4CAF50,color:#fff
+    style Gmail fill:#EA4335,color:#fff
+    style Watcher fill:#2196F3,color:#fff
+    style Vault fill:#9C27B0,color:#fff
+    style Orchestrator fill:#FF9800,color:#fff
+    style Claude fill:#00BCD4,color:#fff
+    style Done fill:#4CAF50,color:#fff
+    style Complete fill:#4CAF50,color:#fff
+```

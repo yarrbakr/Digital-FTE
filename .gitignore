@@ -1,0 +1,44 @@
+# Secrets - NEVER COMMIT THESE
+.env
+credentials.json
+token.json
+*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# UV
+.python-version
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs (optional - you can commit sample logs)
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
