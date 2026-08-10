@@ -118,7 +118,8 @@ class BaseWatcher(ABC):
                         for item in items:
                             try:
                                 filepath = self.create_action_file(item)
-                                self.log_activity(f'Created action file: {filepath.name}')
+                                if filepath is not None:
+                                    self.log_activity(f'Created action file: {filepath.name}')
                             except Exception as e:
                                 self.log_activity(
                                     f'Error creating action file: {e}',

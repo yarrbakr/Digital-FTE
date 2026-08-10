@@ -16,18 +16,29 @@ from googleapiclient.errors import HttpError
 from base_watcher import BaseWatcher
 
 # Gmail API scopes - what permissions we need
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.send',
+]
 
 
 class GmailWatcher(BaseWatcher):
     """
     Watches Gmail for new important/unread emails.
-    
+
     Uses Gmail API to check for emails matching specific criteria
     (by default: unread + important), then creates markdown files
     for Claude to process.
     """
-    
+
+    # Sender patterns that indicate bulk/newsletter emails — skip these
+    SKIP_SENDER_PATTERNS = [
+        'noreply@', 'no-reply@', 'newsletter@', 'marketing@',
+        'notifications@', 'updates@', 'mailer@', 'digest@',
+        'promo@', 'info@', 'hello@', 'team@',
+        'mailer-daemon@', 'postmaster@',
+    ]
+
     def __init__(
         self,
         vault_path: str,
@@ -185,7 +196,8 @@ class GmailWatcher(BaseWatcher):
                 'subject': headers.get('Subject', 'No Subject'),
                 'date': headers.get('Date', 'Unknown'),
                 'snippet': snippet,
-                'body': body
+                'body': body,
+                'has_unsubscribe': 'List-Unsubscribe' in headers,
             }
             
         except HttpError as error:
@@ -223,22 +235,46 @@ class GmailWatcher(BaseWatcher):
         # Default to medium priority
         return 'medium'
     
+    def _is_bulk_email(self, details: Dict[str, Any]) -> bool:
+        """Check if an email looks like a newsletter or bulk sender."""
+        sender = details.get('from', '').lower()
+
+        # List-Unsubscribe header is a strong signal for bulk/marketing mail
+        if details.get('has_unsubscribe', False):
+            return True
+
+        # Check sender against known bulk patterns
+        for pattern in self.SKIP_SENDER_PATTERNS:
+            if pattern in sender:
+                return True
+
+        return False
+
     def create_action_file(self, item: Dict[str, Any]) -> Path:
         """
         Create a markdown action file for an email.
-        
+
         Args:
             item: Dict with message ID
-            
+
         Returns:
-            Path to created file
+            Path to created file, or None if skipped
         """
         message_id = item['id']
-        
+
         # Get full message details
         details = self._get_message_details(message_id)
         if not details:
             raise ValueError(f'Could not get details for message {message_id}')
+
+        # Skip newsletters/bulk emails — mark processed but don't create file
+        if self._is_bulk_email(details):
+            self.processed_ids.add(message_id)
+            self.log_activity(
+                f'Skipped bulk/newsletter: {details["subject"][:60]} '
+                f'(from: {details["from"][:40]})'
+            )
+            return None
         
         # Determine priority
         priority = self._determine_priority(details)
