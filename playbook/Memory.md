@@ -5,7 +5,7 @@
 > Keep it current — future sessions rely on it.
 
 ## Current status
-- **Phase:** Phase 0 — Foundation
+- **Phase:** Phase 0 ✅ complete → next is Phase 1 (core engine)
 - **Last updated:** 2026-08-31
 - **One-liner:** A provider-agnostic autonomous AI employee that watches Gmail & Slack, drafts actions with the AI provider of your choice, routes them through human approval, and executes them — self-hostable in one command.
 
@@ -24,13 +24,14 @@
 | D8 | **$0 build/demo budget**. | Every paid service (Claude API, cloud hosting, domain) is deferred to the SaaS phase, funded by a paying client. |
 
 ## Completed
-- _nothing yet_
+- **Phase 0 — Foundation.** Repo restructured (`backend/`+`frontend/`+`docker/`, old scripts in `_archive/`). FastAPI + SQLAlchemy + SQLite skeleton with env-driven config. `LLMProvider` abstraction + Mistral impl + registry. Endpoints verified via TestClient; SQLite auto-creates on startup.
 
 ## In progress
-- Phase 0 — playbook scaffolded; repo restructure next.
+- _nothing — awaiting Phase 1 kickoff._
 
 ## Next up
-- Restructure repo into `backend/` + `frontend/` + `docker/`; stand up the FastAPI skeleton, SQLite schema, and the `LLMProvider` abstraction (Mistral default).
+- **Phase 1 — Core engine:** finalize DB schema usage, build `Watcher` interface + `GmailWatcher` (writes Items to DB), `SlackWatcher`, orchestrator (NEW → analyze via provider → Draft → PENDING_APPROVAL), approval state machine + `Action` executors, and the APScheduler wiring.
+- To make the AI live: get a free Mistral key (https://console.mistral.ai/) → put in `backend/.env`.
 
 ## Open questions / bugs
 - Product name: using **"Digital FTE"** (Full-Time Employee) for now — confirm or rename.
@@ -46,3 +47,8 @@
 - **Attempted:** cloned `yarrbakr/Digital-FTE`, set up `origin` + `upstream` remotes; agreed direction (productize the hackathon "AI Employee" into a sellable, one-command self-host product built open-core-ready for SaaS); initialized the playbook.
 - **Result:** repo in place on branch `feat/saas-replatform`; playbook scaffolded with 8 locked decisions. Existing Bronze-tier root `CLAUDE.md` replaced with the playbook `CLAUDE.md` (old one described the architecture we're removing).
 - **Next:** restructure the repo and stand up the core skeleton (FastAPI + SQLite + `LLMProvider`/Mistral).
+
+### 2026-08-31 — Session 1 (cont.) — Phase 0 build
+- **Attempted:** restructure repo + stand up backend foundation (FastAPI + SQLite + provider abstraction).
+- **Result:** ✅ done. `backend/app/{config,db,providers,main}` created; `uv sync` OK on Python 3.13; TestClient shows /health, /api/config, /api/providers working; /api/providers/test returns clean 502 with no key (correct); SQLite `digital_fte.db` auto-created on startup. Old scripts archived to `_archive/`; `.gitignore` fixed (blanket `*.json` removed, `*.db` added).
+- **Next:** Phase 1 — watchers (Gmail/Slack) → DB, orchestrator + provider analyze, approval state machine, executors, scheduler.

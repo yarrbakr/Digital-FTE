@@ -3,11 +3,11 @@
 > The build, broken into phases. Work **one phase at a time** — don't build ahead. Check
 > items off as they ship. Confirm the current phase from `Memory.md` before starting.
 
-## Phase 0 — Foundation
+## Phase 0 — Foundation ✅
 - [x] Scaffold the playbook (Memory / Architecture / Phases / CLAUDE.md).
-- [ ] Restructure repo into `backend/` + `frontend/` + `docker/`; archive the old hackathon scripts.
-- [ ] FastAPI skeleton + SQLAlchemy + SQLite; `.env` + config loader.
-- [ ] `LLMProvider` abstraction with a **Mistral** implementation (free API) + a `provider` setting.
+- [x] Restructure repo into `backend/` + `frontend/` + `docker/`; archive the old hackathon scripts (`_archive/`).
+- [x] FastAPI skeleton + SQLAlchemy + SQLite; `.env` + config loader. Verified: `/health`, `/api/config`, `/api/providers`, `/api/providers/test`.
+- [x] `LLMProvider` abstraction with a **Mistral** implementation (free API) + registry + a `provider` setting.
 
 ## Phase 1 — Core engine re-platform
 - [ ] SQLite schema for Item / Draft / Connection / Setting / LogEntry.

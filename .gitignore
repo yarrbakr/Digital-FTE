@@ -1,13 +1,22 @@
 # Secrets - NEVER COMMIT THESE
 .env
+.env.*
+!.env.example
 credentials.json
 token.json
-*.json
-.whatsapp-session/
-.linkedin-session/
+*.credentials.json
+client_secret*.json
+
+# Databases (SQLite state store)
+*.db
+*.sqlite
+*.sqlite3
 
 # Node
 node_modules/
+.next/
+out/
+.turbo/
 
 # Python
 __pycache__/
@@ -40,7 +49,7 @@ env/
 .DS_Store
 Thumbs.db
 
-# Logs (optional - you can commit sample logs)
+# Logs
 *.log
 
 # Testing
