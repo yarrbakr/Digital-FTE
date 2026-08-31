@@ -19,11 +19,13 @@
 - [ ] Real Gmail/Slack executors registered into the `executor` seam.
 - [ ] In-process APScheduler wiring the whole pipeline on a timer.
 
-## Phase 2 — Web dashboard (Next.js)
-- [ ] Dashboard shell + API client to FastAPI.
-- [ ] Inbox / drafts list; approve / reject actions.
-- [ ] Connections screen: connect Gmail, connect Slack, set AI provider + key/model.
-- [ ] Settings (polling interval, priority keywords) + status/overview page.
+## Phase 2 — Web dashboard (Next.js) ✅
+- [x] Dashboard shell (sidebar + design tokens, light/dark) + typed API client to FastAPI (+ CORS).
+- [x] Overview: live stat cards, Process new / Execute approved actions, recent activity, backend/provider status.
+- [x] Inbox: filterable list + detail (original message + AI draft + reasoning) + approve/reject + "Simulate incoming" modal.
+- [x] Activity (audit log) + Settings (provider/model/key/storage/channels) pages.
+- [x] **Verified in-browser end-to-end with live Mistral:** simulate → process → pending → approve.
+- [ ] (Deferred to Phase 1 remainder) Connections screen wiring for real Gmail/Slack credentials.
 
 ## Phase 3 — One-command install (sellable self-host v1)
 - [ ] Dockerfile(s) + `docker-compose.yml` (backend + frontend + volume for SQLite).

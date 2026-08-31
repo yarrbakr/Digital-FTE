@@ -11,6 +11,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app import __version__
@@ -29,6 +30,19 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
+
+# Local dashboard (Next.js) runs on a different port → allow it in dev.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(items_router)
 
 

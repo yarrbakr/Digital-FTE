@@ -1,0 +1,104 @@
+// Thin client for the Digital FTE backend API.
+
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
+
+export type ItemStatus =
+  | "new"
+  | "drafted"
+  | "pending_approval"
+  | "approved"
+  | "rejected"
+  | "done"
+  | "failed";
+
+export type Priority = "high" | "medium" | "low";
+
+export interface Draft {
+  id: number;
+  provider: string;
+  model: string;
+  action_type: string;
+  content: string;
+  reasoning: string;
+  created_at: string;
+}
+
+export interface Item {
+  id: number;
+  channel: string;
+  external_id: string;
+  subject: string;
+  body: string;
+  sender: string;
+  priority: Priority;
+  status: ItemStatus;
+  received_at: string;
+  created_at: string;
+}
+
+export interface ItemDetail extends Item {
+  drafts: Draft[];
+}
+
+export interface LogEntry {
+  id: number;
+  level: string;
+  source: string;
+  message: string;
+  item_id: number | null;
+  created_at: string;
+}
+
+export interface AppConfig {
+  provider: string;
+  model: string;
+  api_key_set: boolean;
+  poll_interval_seconds: number;
+  database_url: string;
+}
+
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    ...init,
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      detail = (await res.json()).detail ?? detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const api = {
+  getConfig: () => req<AppConfig>("/api/config"),
+  listItems: (status?: string) =>
+    req<Item[]>(`/api/items${status ? `?status=${status}` : ""}`),
+  getItem: (id: number) => req<ItemDetail>(`/api/items/${id}`),
+  createItem: (body: {
+    channel: string;
+    subject: string;
+    body: string;
+    sender: string;
+  }) => req<Item>("/api/items", { method: "POST", body: JSON.stringify(body) }),
+  processItems: () =>
+    req<{ processed: number; errors: number; found: number }>(
+      "/api/items/process",
+      { method: "POST" },
+    ),
+  approve: (id: number) =>
+    req<Item>(`/api/items/${id}/approve`, { method: "POST" }),
+  reject: (id: number) =>
+    req<Item>(`/api/items/${id}/reject`, { method: "POST" }),
+  execute: () =>
+    req<{ done: number; failed: number; found: number }>("/api/items/execute", {
+      method: "POST",
+    }),
+  getLogs: (limit = 50) => req<LogEntry[]>(`/api/logs?limit=${limit}`),
+};

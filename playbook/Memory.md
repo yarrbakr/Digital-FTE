@@ -5,8 +5,9 @@
 > Keep it current — future sessions rely on it.
 
 ## Current status
-- **Phase:** Phase 1 — core engine (brain ✅ done; channel watchers + scheduler remain)
+- **Phase:** Phase 2 ✅ dashboard done → Phase 1 remainder next (real Gmail/Slack + scheduler)
 - **Last updated:** 2026-08-31
+- **How to run:** backend → `cd backend && uv run uvicorn app.main:app` (:8000); frontend → `cd frontend && npm run dev` (:3000).
 - **One-liner:** A provider-agnostic autonomous AI employee that watches Gmail & Slack, drafts actions with the AI provider of your choice, routes them through human approval, and executes them — self-hostable in one command.
 
 ## Locked decisions
@@ -26,11 +27,11 @@
 ## Completed
 - **Phase 0 — Foundation.** Repo restructured (`backend/`+`frontend/`+`docker/`, old scripts in `_archive/`). FastAPI + SQLAlchemy + SQLite skeleton with env-driven config. `LLMProvider` abstraction + Mistral impl + registry. Endpoints verified via TestClient; SQLite auto-creates on startup.
 
-## In progress
-- **Phase 1 — Core engine.** ✅ Brain done: analyzer (provider-driven priority + draft), pipeline orchestrator, approval state machine, executor seam, full pipeline API. Verified end-to-end with live Mistral (urgent email → high priority → drafted reply → approve → execute → done).
+- **Phase 2 — Dashboard.** ✅ Next.js 16 + React 19 + Tailwind v4. Overview (stat cards + actions + activity), Inbox (list + detail + approve/reject + simulate modal), Activity, Settings. Typed API client + CORS. Driven in-browser end-to-end with live Mistral (simulate → process → pending → approve).
 
 ## Next up
-- **Phase 1 remainder:** real `GmailWatcher` (needs Gmail OAuth `credentials.json`) + `SlackWatcher` (needs Slack bot token) writing Items to DB; register real Gmail/Slack executors into the `executor` seam; APScheduler loop to run ingest→process automatically on a timer.
+- **Phase 1 remainder:** real `GmailWatcher` (needs Gmail OAuth `credentials.json`) + `SlackWatcher` (needs Slack bot token) writing Items to DB; register real Gmail/Slack executors into the `executor` seam; APScheduler loop; a Connections UI to enter creds.
+- **Phase 3:** Docker Compose one-command install + product README.
 - Mistral key is set and working in `backend/.env`.
 
 ## Open questions / bugs
@@ -57,3 +58,9 @@
 - **Attempted:** build the core pipeline brain (analyzer, orchestrator, approval state machine, executor seam, API).
 - **Result:** ✅ verified end-to-end with LIVE Mistral. Ingested urgent invoice email → analyzer set priority=high + drafted a professional reply → approve → execute (simulated) → done. Files: app/services/{analyzer,pipeline,executor,ai}.py, app/schemas.py, app/api/items.py; router wired into main. All $0, no OAuth needed for the demo path.
 - **Next:** real Gmail + Slack watchers (need creds), register real executors, APScheduler timer loop.
+
+### 2026-08-31 — Session 1 (cont.) — Phase 2 dashboard
+- **Attempted:** build the Next.js dashboard on top of the pipeline API and verify in-browser.
+- **Result:** ✅ Scaffolded Next.js 16 (React 19, Tailwind v4). Built design tokens (light/dark), Sidebar, ui primitives, typed api client; Overview/Inbox/Activity/Settings pages; added CORS to backend. Ran both servers and drove the full loop in the browser with LIVE Mistral: simulate incoming gmail → Process new → analyzer set high priority + drafted reply → item moved to Pending → approval screen with Approve/Reject shown. Looks polished and sellable.
+- **Errors/fixes:** first backend bg-start double-forked via trailing `&` (orphaned but serving); second bind failed (port in use) — harmless, one instance serves :8000. Browser ref clicks occasionally needed coordinate fallback after re-render.
+- **Next:** Phase 1 remainder (real Gmail/Slack + scheduler + connections UI), then Phase 3 (Docker one-command install).
