@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from app import __version__
+from app.api.items import router as items_router
 from app.config import get_settings
 from app.db.database import init_db
 from app.providers import ProviderError, available_providers, get_provider
@@ -28,6 +29,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
+app.include_router(items_router)
 
 
 @app.get("/health")

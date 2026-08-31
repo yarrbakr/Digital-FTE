@@ -10,12 +10,14 @@
 - [x] `LLMProvider` abstraction with a **Mistral** implementation (free API) + registry + a `provider` setting.
 
 ## Phase 1 — Core engine re-platform
-- [ ] SQLite schema for Item / Draft / Connection / Setting / LogEntry.
-- [ ] `Watcher` interface + `GmailWatcher` (writes Items to DB, not Obsidian).
-- [ ] `SlackWatcher` (Slack Bot API).
-- [ ] Orchestrator: pick `NEW` items → `LLMProvider.analyze` → `Draft` + priority → `PENDING_APPROVAL`.
-- [ ] Approval state machine + `Action` executors (Gmail send / Slack post).
-- [ ] In-process APScheduler wiring the whole pipeline.
+- [x] SQLite schema for Item / Draft / Connection / Setting / LogEntry.
+- [x] Orchestrator: pick `NEW` items → analyze via provider → `Draft` + priority → `PENDING_APPROVAL`. **Verified end-to-end with live Mistral.**
+- [x] Approval state machine (approve/reject) + pluggable `executor` seam (simulated send for now).
+- [x] Pipeline API: ingest / process / list / detail / approve / reject / execute / logs.
+- [ ] `Watcher` interface + `GmailWatcher` (writes Items to DB) — needs Gmail OAuth.
+- [ ] `SlackWatcher` (Slack Bot API) — needs Slack bot token.
+- [ ] Real Gmail/Slack executors registered into the `executor` seam.
+- [ ] In-process APScheduler wiring the whole pipeline on a timer.
 
 ## Phase 2 — Web dashboard (Next.js)
 - [ ] Dashboard shell + API client to FastAPI.

@@ -5,7 +5,7 @@
 > Keep it current — future sessions rely on it.
 
 ## Current status
-- **Phase:** Phase 0 ✅ complete → next is Phase 1 (core engine)
+- **Phase:** Phase 1 — core engine (brain ✅ done; channel watchers + scheduler remain)
 - **Last updated:** 2026-08-31
 - **One-liner:** A provider-agnostic autonomous AI employee that watches Gmail & Slack, drafts actions with the AI provider of your choice, routes them through human approval, and executes them — self-hostable in one command.
 
@@ -27,11 +27,11 @@
 - **Phase 0 — Foundation.** Repo restructured (`backend/`+`frontend/`+`docker/`, old scripts in `_archive/`). FastAPI + SQLAlchemy + SQLite skeleton with env-driven config. `LLMProvider` abstraction + Mistral impl + registry. Endpoints verified via TestClient; SQLite auto-creates on startup.
 
 ## In progress
-- _nothing — awaiting Phase 1 kickoff._
+- **Phase 1 — Core engine.** ✅ Brain done: analyzer (provider-driven priority + draft), pipeline orchestrator, approval state machine, executor seam, full pipeline API. Verified end-to-end with live Mistral (urgent email → high priority → drafted reply → approve → execute → done).
 
 ## Next up
-- **Phase 1 — Core engine:** finalize DB schema usage, build `Watcher` interface + `GmailWatcher` (writes Items to DB), `SlackWatcher`, orchestrator (NEW → analyze via provider → Draft → PENDING_APPROVAL), approval state machine + `Action` executors, and the APScheduler wiring.
-- To make the AI live: get a free Mistral key (https://console.mistral.ai/) → put in `backend/.env`.
+- **Phase 1 remainder:** real `GmailWatcher` (needs Gmail OAuth `credentials.json`) + `SlackWatcher` (needs Slack bot token) writing Items to DB; register real Gmail/Slack executors into the `executor` seam; APScheduler loop to run ingest→process automatically on a timer.
+- Mistral key is set and working in `backend/.env`.
 
 ## Open questions / bugs
 - Product name: using **"Digital FTE"** (Full-Time Employee) for now — confirm or rename.
@@ -52,3 +52,8 @@
 - **Attempted:** restructure repo + stand up backend foundation (FastAPI + SQLite + provider abstraction).
 - **Result:** ✅ done. `backend/app/{config,db,providers,main}` created; `uv sync` OK on Python 3.13; TestClient shows /health, /api/config, /api/providers working; /api/providers/test returns clean 502 with no key (correct); SQLite `digital_fte.db` auto-created on startup. Old scripts archived to `_archive/`; `.gitignore` fixed (blanket `*.json` removed, `*.db` added).
 - **Next:** Phase 1 — watchers (Gmail/Slack) → DB, orchestrator + provider analyze, approval state machine, executors, scheduler.
+
+### 2026-08-31 — Session 1 (cont.) — Phase 1 brain
+- **Attempted:** build the core pipeline brain (analyzer, orchestrator, approval state machine, executor seam, API).
+- **Result:** ✅ verified end-to-end with LIVE Mistral. Ingested urgent invoice email → analyzer set priority=high + drafted a professional reply → approve → execute (simulated) → done. Files: app/services/{analyzer,pipeline,executor,ai}.py, app/schemas.py, app/api/items.py; router wired into main. All $0, no OAuth needed for the demo path.
+- **Next:** real Gmail + Slack watchers (need creds), register real executors, APScheduler timer loop.
