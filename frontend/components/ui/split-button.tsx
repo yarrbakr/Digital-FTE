@@ -2,10 +2,13 @@
 
 // A split action button: a primary action on the left + a chevron that opens a
 // small menu of secondary actions. Used for "Approve & Send" with an "Approve
-// only" fallback in the dropdown. Closes on outside-click / Escape.
+// only" fallback in the dropdown. The two segments read as one elevated control
+// (shared shadow, hairline divider); the menu fades + scales in from its top-
+// right corner and closes on outside-click / Escape.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { SmoothButton, type SmoothButtonProps } from "./smooth-button";
 
 export interface SplitAction {
@@ -44,12 +47,13 @@ export function SplitButton({
 
   return (
     <div className="relative inline-flex" ref={ref}>
-      <div className="inline-flex">
+      {/* One elevated control: shared shadow on the wrapper, seamless segments. */}
+      <div className="inline-flex rounded-lg shadow-md shadow-black/25 transition-shadow duration-200 hover:shadow-lg hover:shadow-black/30">
         <SmoothButton
           variant={variant}
           disabled={disabled}
           onClick={primary.onClick}
-          className="rounded-r-none"
+          className="rounded-r-none shadow-none hover:translate-y-0"
         >
           {primary.icon}
           {primary.label}
@@ -61,30 +65,44 @@ export function SplitButton({
           aria-label="More actions"
           aria-haspopup="menu"
           aria-expanded={open}
-          className="rounded-l-none border-l border-black/25 px-2"
+          className="relative rounded-l-none px-2 shadow-none hover:translate-y-0 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-px before:-translate-y-1/2 before:bg-white/25 before:content-['']"
         >
-          <ChevronDown className={open ? "rotate-180 transition-transform" : "transition-transform"} />
+          <ChevronDown
+            className={cn(
+              "transition-transform duration-300 ease-out",
+              open && "rotate-180",
+            )}
+          />
         </SmoothButton>
       </div>
 
-      {open && actions.length > 0 && (
+      {actions.length > 0 && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+4px)] z-20 min-w-48 overflow-hidden rounded-lg border shadow-lg"
-          style={{ background: "var(--surface)" }}
+          aria-hidden={!open}
+          className={cn(
+            "absolute right-0 bottom-[calc(100%+8px)] z-30 min-w-[16rem] origin-bottom-right overflow-hidden rounded-xl border p-1 shadow-xl shadow-black/40 backdrop-blur-md transition-all duration-200 ease-out motion-reduce:transition-none",
+            open
+              ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+              : "pointer-events-none translate-y-1 scale-95 opacity-0",
+          )}
+          style={{ background: "color-mix(in oklab, var(--surface) 90%, transparent)" }}
         >
           {actions.map((a) => (
             <button
               key={a.label}
               role="menuitem"
+              tabIndex={open ? 0 : -1}
               disabled={disabled}
               onClick={() => {
                 setOpen(false);
                 a.onClick();
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0 [&_svg]:text-muted"
+              className="group flex w-full items-center gap-3 whitespace-nowrap rounded-lg px-2.5 py-2 text-left text-sm font-medium text-fg transition-colors hover:bg-surface-2 disabled:pointer-events-none disabled:opacity-50"
             >
-              {a.icon}
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-2 text-muted transition-colors duration-150 group-hover:bg-[var(--accent-soft)] group-hover:text-[var(--accent)] [&_svg]:h-4 [&_svg]:w-4">
+                {a.icon}
+              </span>
               {a.label}
             </button>
           ))}

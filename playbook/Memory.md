@@ -112,3 +112,9 @@
 - **Attempted:** user said "push it and merge to master" (explicit yes for this push).
 - **Result:** ✅ Pushed `feat/saas-replatform` (`8bd5198..872655d`) to `origin`; fast-forwarded `master` to `872655d` (clean FF, no divergence) and pushed `master` to `origin` (both branches now at `872655d` on `github.com/yarrbakr/Digital-FTE`). Switched local checkout back to `feat/saas-replatform`. Working tree clean.
 - **Next:** await the user's remaining decision points, then **Phase 3** (Docker one-command install).
+
+### 2026-09-01 — Session 3 (cont.) — polish the Approve split button
+- **Attempted:** user: the split "Approve & Send" control "looks really old and bad — make it polished and animated."
+- **Result:** ✅ Rebuilt `components/ui/split-button.tsx` as one cohesive elevated control (shared shadow on the wrapper, `shadow-none` segments, hairline `before:` divider instead of a hard seam). Dropdown now **animates** (fade + scale-95�921 + slide from `origin-bottom-right`, 200ms, `motion-reduce:transition-none`), has backdrop-blur + rounded-xl + soft elevation, wider `min-w-16rem` so "Approve only (send later)" no longer wraps, and each action gets an **icon chip** that tints to accent on hover. Menu opens **upward** (`bottom-full`) because the action bar sits at the bottom of the detail scroll — was clipping when it opened downward. Chevron eases 300ms on toggle. `smooth-button.tsx`: gradient/outline variants got a subtle hover lift (`-translate-y-px`) + `hover:shadow-lg`, cancelled inside the split control so the two segments stay joined.
+- **Verified in-browser:** pending item → opened dropdown (upward, fully visible, no wrap, icon chip), closed with exit animation, hover lift on Approve & Send. `tsc --noEmit` clean.
+- **Next:** await user's remaining decision points, then **Phase 3** (Docker one-command install).
