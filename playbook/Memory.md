@@ -23,6 +23,7 @@
 | D6 | **Channels = Gmail + Slack only** (official APIs). | Dropped WhatsApp/LinkedIn — their Playwright automation violates ToS and risks client account bans/liability. |
 | D7 | **Docker Compose one-command install**. | The "download and run with one command" deliverable clients pay for. |
 | D8 | **$0 build/demo budget**. | Every paid service (Claude API, cloud hosting, domain) is deferred to the SaaS phase, funded by a paying client. |
+| D9 | **Confirm-and-send UI = split "Approve" button + editable draft.** Primary *Approve & Send* (approve + send that one item now); dropdown *Approve only (send later)*; the AI draft is editable before it's sent. | Human-in-the-loop means fixing a nearly-right reply and confirming the exact text *per item* — the old "Execute now" fired ALL approved items at once, not the one under review. |
 
 ## Completed
 - **Phase 0 — Foundation.** Repo restructured (`backend/`+`frontend/`+`docker/`, old scripts in `_archive/`). FastAPI + SQLAlchemy + SQLite skeleton with env-driven config. `LLMProvider` abstraction + Mistral impl + registry. Endpoints verified via TestClient; SQLite auto-creates on startup.
@@ -96,3 +97,13 @@
 - **Attempted:** user noted Inbox/Activity had the styling but no actual graphs; add charts there too.
 - **Result:** ✅ Inbox got an analytics strip (Priority donut, Channels donut, Status bars from loaded items); Activity got a By-level donut (info/error/warn) + By-source bars over the log feed. Generalized `Donut`/`PriorityBars` with height/radius/label-width props for compact strips. Verified in-browser, no console errors, tsc clean. Commit `dd3783f`.
 - **Next:** **push** (awaiting yes) then **Phase 3**.
+
+### 2026-09-01 — Session 3 — confirm-and-send: editable draft + per-item send
+- **Decision (D9):** approval UI = **split "Approve" button** — primary **Approve & Send** (approve + send that one item now), dropdown **Approve only (send later)**; and the AI draft is **editable before it goes out** (the human's edited text is what's sent). *Why:* the human-in-the-loop point is to fix a nearly-right reply and confirm the exact text per item; the old "Execute now" fired a batch of ALL approved items, not the one in front of you.
+- **Attempted:** add per-item send + editable drafts across backend + dashboard.
+- **Result:** ✅
+  - **Backend** — `pipeline.update_draft()` (edit latest draft text; allowed while pending_approval / approved / failed) + `pipeline.execute_item()` (send ONE approved-or-failed item → DONE, or FAILED + re-raise so the UI shows why). New endpoints `PATCH /api/items/{id}/draft` and `POST /api/items/{id}/execute` (`ItemDetailOut`; 404/409, and 502 on channel send failure). Batch `execute_approved` / `POST /api/items/execute` kept.
+  - **Frontend** — new `components/ui/split-button.tsx` (primary + chevron menu, closes on outside-click/Esc). Inbox draft card is now an editable `<textarea>` when pending/approved (with an "edited" hint); pending items show the split button (Approve & Send / Approve only) + Reject; approved items show **Send now**; failed items show **Retry send**. Added `sendTarget()` copy ("emails …" / "posts in-thread on Slack"). `api.editDraft` + `api.executeItem` clients. Approve-only = save-if-edited → approve; Approve & Send = save-if-edited → approve → executeItem.
+- **Errors/fixes:** running backend had no `--reload` → new routes 404'd; restarted uvicorn with `--reload` (bg `bgp61nc3z`, the old PID-10848 task exit 127 was the kill, not a failure). Retry-send hit a FAILED item but `execute_item` only allowed APPROVED → widened both guards to accept FAILED.
+- **Tested (no real send — Gmail/Slack are live):** created simulated items, processed to a draft, verified `execute-before-approve`→409, `edit`→persists (survives approve), `empty-edit`→409, `reject-after-approve`→409; DOM-verified textarea prefilled + chevron reveals "Approve only" + Approve&Send/Reject render. `tsc --noEmit` clean. Deleted test items 93/94 from SQLite (no delete endpoint) → back to 92 items. **Never executed a real send.**
+- **Next:** commit; still holding on Phase 3 pending the user's other points.

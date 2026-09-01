@@ -129,6 +129,67 @@ def reject_item(session: Session, item_id: int) -> models.Item:
     return item
 
 
+def update_draft(session: Session, item_id: int, content: str) -> models.Item:
+    """Human-edit the latest draft's content before it's sent.
+
+    Allowed while the item is still pending approval or approved (i.e. not yet
+    sent). The edited text is what the executor will actually deliver.
+    """
+    item = _require_item(session, item_id)
+    if item.status not in (
+        models.ItemStatus.PENDING_APPROVAL,
+        models.ItemStatus.APPROVED,
+        models.ItemStatus.FAILED,  # allow fixing the text before a retry
+    ):
+        raise ValueError(
+            f"Item {item_id} draft can't be edited (status={item.status.value})."
+        )
+    draft = item.drafts[-1] if item.drafts else None
+    if draft is None:
+        raise ValueError(f"Item {item_id} has no draft to edit.")
+    content = content.strip()
+    if not content:
+        raise ValueError("Draft content can't be empty.")
+    draft.content = content
+    _log(session, "info", "approval", "Human edited the draft.", item.id)
+    session.commit()
+    session.refresh(item)
+    return item
+
+
+def execute_item(session: Session, item_id: int) -> models.Item:
+    """Send a single APPROVED item on its channel → DONE (or FAILED + raise).
+
+    Unlike ``execute_approved`` (a batch), this fires exactly one item so the
+    dashboard's per-item "Approve & Send" acts only on the item in front of you.
+    Any channel-level failure is logged, the item is marked FAILED, and the
+    error is re-raised so the caller can surface why the send failed.
+    """
+    item = _require_item(session, item_id)
+    if item.status not in (models.ItemStatus.APPROVED, models.ItemStatus.FAILED):
+        raise ValueError(
+            f"Item {item_id} is not approved (status={item.status.value})."
+        )
+    draft = item.drafts[-1] if item.drafts else None
+    if draft is None:
+        item.status = models.ItemStatus.FAILED
+        _log(session, "error", "executor", "No draft to execute.", item.id)
+        session.commit()
+        raise ValueError(f"Item {item_id} has no draft to execute.")
+    try:
+        result = executor.execute(item, draft)
+    except Exception as exc:  # channel-level failure
+        item.status = models.ItemStatus.FAILED
+        _log(session, "error", "executor", f"Execution failed: {exc}", item.id)
+        session.commit()
+        raise
+    item.status = models.ItemStatus.DONE
+    _log(session, "info", "executor", result, item.id)
+    session.commit()
+    session.refresh(item)
+    return item
+
+
 def execute_approved(session: Session, limit: int = 20) -> dict:
     """Execute APPROVED items on their channel → DONE (or FAILED)."""
     items = list(

@@ -44,6 +44,10 @@ class ItemDetailOut(ItemOut):
     drafts: list[DraftOut] = []
 
 
+class DraftUpdate(BaseModel):
+    content: str
+
+
 class LogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int

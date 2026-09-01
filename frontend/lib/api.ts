@@ -135,6 +135,13 @@ export const api = {
     req<Item>(`/api/items/${id}/approve`, { method: "POST" }),
   reject: (id: number) =>
     req<Item>(`/api/items/${id}/reject`, { method: "POST" }),
+  editDraft: (id: number, content: string) =>
+    req<ItemDetail>(`/api/items/${id}/draft`, {
+      method: "PATCH",
+      body: JSON.stringify({ content }),
+    }),
+  executeItem: (id: number) =>
+    req<ItemDetail>(`/api/items/${id}/execute`, { method: "POST" }),
   execute: () =>
     req<{ done: number; failed: number; found: number }>("/api/items/execute", {
       method: "POST",

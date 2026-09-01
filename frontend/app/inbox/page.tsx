@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Hash, Mail, Plus, Send, Sparkles, X } from "lucide-react";
+import { Check, Hash, Mail, Pencil, Plus, Send, Sparkles, X } from "lucide-react";
 import { api, type Item, type ItemDetail, type ItemStatus } from "@/lib/api";
 import { Card, PriorityBadge, StatusBadge } from "@/components/ui";
 import { SmoothButton } from "@/components/ui/smooth-button";
+import { SplitButton } from "@/components/ui/split-button";
 import { Donut, PriorityBars } from "@/components/charts";
 
 const FILTERS: { key: string; label: string; match?: ItemStatus }[] = [
@@ -19,11 +20,18 @@ function ChannelIcon({ channel, className = "" }: { channel: string; className?:
   return <Mail className={className} size={14} />;
 }
 
+// One-line description of where an approved reply actually goes.
+function sendTarget(item: { channel: string; sender: string }) {
+  if (item.channel === "slack") return "posts in-thread on Slack";
+  return item.sender ? `emails ${item.sender}` : "sends the email reply";
+}
+
 export default function InboxPage() {
   const [all, setAll] = useState<Item[]>([]);
   const [filter, setFilter] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<ItemDetail | null>(null);
+  const [draftText, setDraftText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -76,6 +84,37 @@ export default function InboxPage() {
   }
 
   const latestDraft = detail?.drafts.at(-1);
+  const editable = detail?.status === "pending_approval" || detail?.status === "approved";
+  const dirty = latestDraft != null && draftText.trim() !== latestDraft.content;
+
+  // Reset the editor when a different item (or a freshly generated draft) loads.
+  useEffect(() => {
+    setDraftText(latestDraft?.content ?? "");
+  }, [detail?.id, latestDraft?.id]);
+
+  // Save the human edit only if it actually changed; used before approve/send.
+  async function saveIfDirty() {
+    if (detail && dirty && draftText.trim()) {
+      await api.editDraft(detail.id, draftText);
+    }
+  }
+
+  async function approveOnly() {
+    if (!detail) return;
+    await act(async () => {
+      await saveIfDirty();
+      await api.approve(detail.id);
+    });
+  }
+
+  async function approveAndSend() {
+    if (!detail) return;
+    await act(async () => {
+      await saveIfDirty();
+      await api.approve(detail.id);
+      await api.executeItem(detail.id);
+    });
+  }
 
   const n = (s: ItemStatus) => all.filter((i) => i.status === s).length;
   const priorityData = [
@@ -210,7 +249,24 @@ export default function InboxPage() {
                     </div>
                     <span className="text-[11px] text-muted">{latestDraft.provider}/{latestDraft.model}</span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{latestDraft.content}</p>
+
+                  {editable ? (
+                    <>
+                      <textarea
+                        className="fte-input min-h-32 leading-relaxed"
+                        value={draftText}
+                        onChange={(e) => setDraftText(e.target.value)}
+                        disabled={busy}
+                      />
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted">
+                        <Pencil size={11} />
+                        {dirty ? "Edited — your version is what gets sent." : "Editable — tweak the reply before sending."}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{latestDraft.content}</p>
+                  )}
+
                   {latestDraft.reasoning && (
                     <div className="mt-3 border-t pt-3 text-xs text-muted">
                       <span className="font-medium">Why: </span>
@@ -229,21 +285,43 @@ export default function InboxPage() {
               )}
 
               {detail.status === "pending_approval" && (
-                <div className="mt-5 flex gap-2">
-                  <SmoothButton variant="success" disabled={busy} onClick={() => act(() => api.approve(detail.id))}>
-                    <Check /> Approve
-                  </SmoothButton>
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <SplitButton
+                    variant="success"
+                    disabled={busy}
+                    primary={{ label: "Approve & Send", icon: <Send />, onClick: approveAndSend }}
+                    actions={[
+                      { label: "Approve only (send later)", icon: <Check />, onClick: approveOnly },
+                    ]}
+                  />
                   <SmoothButton variant="danger" disabled={busy} onClick={() => act(() => api.reject(detail.id))}>
                     <X /> Reject
                   </SmoothButton>
+                  <span className="ml-1 text-xs text-muted">{sendTarget(detail)}</span>
                 </div>
               )}
               {detail.status === "approved" && (
-                <div className="mt-5 flex items-center gap-3">
-                  <SmoothButton variant="primary" disabled={busy} onClick={() => act(api.execute)}>
-                    <Send /> Execute now
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <SmoothButton
+                    variant="primary"
+                    disabled={busy}
+                    onClick={() => act(async () => { await saveIfDirty(); await api.executeItem(detail.id); })}
+                  >
+                    <Send /> Send now
                   </SmoothButton>
-                  <span className="text-xs text-muted">Queued for the next run.</span>
+                  <span className="text-xs text-muted">Approved — {sendTarget(detail)}, not sent yet.</span>
+                </div>
+              )}
+              {detail.status === "failed" && (
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <SmoothButton
+                    variant="primary"
+                    disabled={busy}
+                    onClick={() => act(async () => { await saveIfDirty(); await api.executeItem(detail.id); })}
+                  >
+                    <Send /> Retry send
+                  </SmoothButton>
+                  <span className="text-xs" style={{ color: "var(--red)" }}>Last send failed — see Activity for the reason.</span>
                 </div>
               )}
             </div>

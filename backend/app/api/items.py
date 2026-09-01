@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db import models
 from app.db.database import get_session
-from app.schemas import ItemCreate, ItemDetailOut, ItemOut, LogOut
+from app.schemas import DraftUpdate, ItemCreate, ItemDetailOut, ItemOut, LogOut
 from app.services import pipeline, stats
 
 router = APIRouter(prefix="/api", tags=["pipeline"])
@@ -82,6 +82,32 @@ def reject(item_id: int, session: Session = Depends(get_session)) -> models.Item
         raise HTTPException(404, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
+
+
+@router.patch("/items/{item_id}/draft", response_model=ItemDetailOut)
+def edit_draft(
+    item_id: int, body: DraftUpdate, session: Session = Depends(get_session)
+) -> models.Item:
+    """Human-edit the latest draft's text before it's sent."""
+    try:
+        return pipeline.update_draft(session, item_id, body.content)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@router.post("/items/{item_id}/execute", response_model=ItemDetailOut)
+def execute_one(item_id: int, session: Session = Depends(get_session)) -> models.Item:
+    """Send a single APPROVED item on its channel (Approve & Send)."""
+    try:
+        return pipeline.execute_item(session, item_id)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except Exception as exc:  # channel send failed — item is now FAILED
+        raise HTTPException(502, f"Send failed: {exc}") from exc
 
 
 @router.post("/items/execute")
