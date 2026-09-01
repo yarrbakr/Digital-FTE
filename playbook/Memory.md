@@ -85,3 +85,9 @@
 - **Errors/fixes:** recharts Pie/RadialBar enter-animation stuck at frame 0 when the browser pane runs hidden (rAF paused) → donut rendered as a thin sliver. Fixed by `isAnimationActive={false}` on all charts (also better for the 5s re-poll). Browser-pane screenshots go stale when hidden — DOM inspection confirmed all charts render.
 - **Design:** Stitch project `2875154216124828334`, design system `assets/12647908629833099406` (dark, indigo #6d76ff, Space Grotesk/Geist, rounded-12). **21st.dev free tier = 2 component retrievals/day** — spent on "Advanced Stats" (recharts+chart wrapper) and "Smooth Button". Screenshot saved to scratchpad.
 - **Next:** optional — extend minimal-text/graph treatment to Inbox; the "No draft yet → triaged" copy fix; then **Phase 3** (Docker install).
+
+### 2026-09-01 — Session 2 (cont.) — extend redesign to Inbox / Settings / Activity
+- **Attempted:** carry the control-room look (compact header, icons, SmoothButton, minimal text) across the rest of the app.
+- **Result:** ✅ Rewrote `app/inbox/page.tsx` (compact header with filter pills + live counts, channel-icon list rows w/ priority dots, cleaner detail, SmoothButton approve/reject/execute, icon channel toggle in the simulate modal) — and **fixed the misleading "No draft yet → run Process new" copy**: Done items now read "Triaged — the AI judged this needs no reply." Rewrote `app/settings/page.tsx` (header + "Check now", channel cards w/ Mail/Hash icons + status dots, provider/storage cards, trimmed prose) and `app/logs/page.tsx` (header + event/error count pills). Deleted now-unused `components/PageHeader.tsx`.
+- **Verified in-browser:** Inbox (pending item → AI draft + reasoning + green Approve/red Reject; Done item → new triaged copy), Settings (both channels connected, provider/storage), no console errors, tsc clean.
+- **Next:** **push** (awaiting user's yes) then **Phase 3** (Docker one-command install).
