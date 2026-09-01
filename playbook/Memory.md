@@ -107,3 +107,8 @@
 - **Errors/fixes:** running backend had no `--reload` → new routes 404'd; restarted uvicorn with `--reload` (bg `bgp61nc3z`, the old PID-10848 task exit 127 was the kill, not a failure). Retry-send hit a FAILED item but `execute_item` only allowed APPROVED → widened both guards to accept FAILED.
 - **Tested (no real send — Gmail/Slack are live):** created simulated items, processed to a draft, verified `execute-before-approve`→409, `edit`→persists (survives approve), `empty-edit`→409, `reject-after-approve`→409; DOM-verified textarea prefilled + chevron reveals "Approve only" + Approve&Send/Reject render. `tsc --noEmit` clean. Deleted test items 93/94 from SQLite (no delete endpoint) → back to 92 items. **Never executed a real send.**
 - **Next:** commit; still holding on Phase 3 pending the user's other points.
+
+### 2026-09-01 — Session 3 (cont.) — push + merge to master
+- **Attempted:** user said "push it and merge to master" (explicit yes for this push).
+- **Result:** ✅ Pushed `feat/saas-replatform` (`8bd5198..872655d`) to `origin`; fast-forwarded `master` to `872655d` (clean FF, no divergence) and pushed `master` to `origin` (both branches now at `872655d` on `github.com/yarrbakr/Digital-FTE`). Switched local checkout back to `feat/saas-replatform`. Working tree clean.
+- **Next:** await the user's remaining decision points, then **Phase 3** (Docker one-command install).
