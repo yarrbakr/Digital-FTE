@@ -5,6 +5,7 @@ import { Check, Hash, Mail, Plus, Send, Sparkles, X } from "lucide-react";
 import { api, type Item, type ItemDetail, type ItemStatus } from "@/lib/api";
 import { Card, PriorityBadge, StatusBadge } from "@/components/ui";
 import { SmoothButton } from "@/components/ui/smooth-button";
+import { Donut, PriorityBars } from "@/components/charts";
 
 const FILTERS: { key: string; label: string; match?: ItemStatus }[] = [
   { key: "", label: "All" },
@@ -76,6 +77,24 @@ export default function InboxPage() {
 
   const latestDraft = detail?.drafts.at(-1);
 
+  const n = (s: ItemStatus) => all.filter((i) => i.status === s).length;
+  const priorityData = [
+    { name: "High", value: all.filter((i) => i.priority === "high").length, color: "var(--red)" },
+    { name: "Medium", value: all.filter((i) => i.priority === "medium").length, color: "var(--amber)" },
+    { name: "Low", value: all.filter((i) => i.priority === "low").length, color: "var(--slate)" },
+  ];
+  const channelData = [
+    { name: "gmail", value: all.filter((i) => i.channel === "gmail").length, color: "var(--accent)" },
+    { name: "slack", value: all.filter((i) => i.channel === "slack").length, color: "var(--green)" },
+  ].filter((d) => d.value > 0);
+  const statusData = [
+    { name: "done", value: n("done"), color: "var(--green)" },
+    { name: "pending", value: n("pending_approval"), color: "var(--amber)" },
+    { name: "approved", value: n("approved"), color: "var(--blue)" },
+    { name: "new", value: n("new"), color: "var(--slate)" },
+    { name: "failed", value: n("failed"), color: "var(--red)" },
+  ].filter((d) => d.value > 0);
+
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
@@ -101,6 +120,21 @@ export default function InboxPage() {
           </SmoothButton>
         </div>
       </header>
+
+      {/* Inbox analytics strip */}
+      <section className="grid shrink-0 gap-4 border-b px-6 py-4 md:grid-cols-3 md:px-8">
+        <MiniCard title="Priority">
+          <Donut data={priorityData} centerValue={all.length} centerLabel="items" height={112} inner={34} outer={52} />
+          <MiniLegend items={priorityData} />
+        </MiniCard>
+        <MiniCard title="Channels">
+          <Donut data={channelData} centerValue={all.length} centerLabel="items" height={112} inner={34} outer={52} />
+          <MiniLegend items={channelData} />
+        </MiniCard>
+        <MiniCard title="Status">
+          <PriorityBars data={statusData} height={112} labelWidth={72} />
+        </MiniCard>
+      </section>
 
       <div className="grid min-h-0 flex-1 md:grid-cols-[minmax(300px,380px)_1fr]">
         {/* List */}
@@ -305,5 +339,27 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
+  );
+}
+
+function MiniCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card className="p-3">
+      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{title}</div>
+      {children}
+    </Card>
+  );
+}
+
+function MiniLegend({ items }: { items: { name: string; color: string }[] }) {
+  return (
+    <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5">
+      {items.map((it) => (
+        <span key={it.name} className="flex items-center gap-1 text-[11px] capitalize text-muted">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: it.color }} />
+          {it.name}
+        </span>
+      ))}
+    </div>
   );
 }

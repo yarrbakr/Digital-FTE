@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, type LogEntry } from "@/lib/api";
 import { Card } from "@/components/ui";
+import { Donut, PriorityBars } from "@/components/charts";
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -15,6 +16,24 @@ export default function LogsPage() {
   }, []);
 
   const errors = logs.filter((l) => l.level === "error").length;
+
+  const levelColor: Record<string, string> = {
+    info: "var(--green)",
+    error: "var(--red)",
+    warn: "var(--amber)",
+  };
+  const levelData = ["info", "error", "warn"]
+    .map((lv) => ({ name: lv, value: logs.filter((l) => l.level === lv).length, color: levelColor[lv] }))
+    .filter((d) => d.value > 0);
+
+  const sourceCounts = logs.reduce<Record<string, number>>((acc, l) => {
+    acc[l.source] = (acc[l.source] ?? 0) + 1;
+    return acc;
+  }, {});
+  const sourceData = Object.entries(sourceCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, value]) => ({ name, value, color: "var(--accent)" }));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -33,7 +52,26 @@ export default function LogsPage() {
         )}
       </header>
 
-      <div className="mx-auto w-full max-w-4xl px-6 py-6 md:px-8">
+      <div className="mx-auto w-full max-w-4xl px-6 py-6 md:px-8 space-y-4">
+        <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+          <Card className="p-4">
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">By level</div>
+            <Donut data={levelData} centerValue={logs.length} centerLabel="events" height={124} inner={38} outer={56} />
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3">
+              {levelData.map((d) => (
+                <span key={d.name} className="flex items-center gap-1 text-[11px] capitalize text-muted">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: d.color }} />
+                  {d.name}
+                </span>
+              ))}
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">By source</div>
+            <PriorityBars data={sourceData} height={160} labelWidth={96} />
+          </Card>
+        </div>
+
         <Card>
           <ul className="divide-y">
             {logs.map((l) => (

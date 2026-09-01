@@ -79,14 +79,21 @@ export function Donut({
   data,
   centerValue,
   centerLabel,
+  height = 180,
+  inner = 58,
+  outer = 82,
 }: {
   data: { name: string; value: number; color: string }[];
   centerValue: number | string;
   centerLabel?: string;
+  height?: number;
+  inner?: number;
+  outer?: number;
 }) {
   const empty = data.every((d) => d.value === 0);
+  const compact = height < 150;
   return (
-    <div className="relative" style={{ height: 180 }}>
+    <div className="relative" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Tooltip content={<ChartTooltip />} />
@@ -95,8 +102,8 @@ export function Donut({
             data={empty ? [{ name: "none", value: 1, color: "var(--border)" }] : data}
             dataKey="value"
             nameKey="name"
-            innerRadius={58}
-            outerRadius={82}
+            innerRadius={inner}
+            outerRadius={outer}
             paddingAngle={empty ? 0 : 2}
             stroke="none"
             startAngle={90}
@@ -109,20 +116,28 @@ export function Donut({
         </PieChart>
       </ResponsiveContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-semibold tabular-nums">{centerValue}</span>
+        <span className={`${compact ? "text-xl" : "text-3xl"} font-semibold tabular-nums`}>{centerValue}</span>
         {centerLabel && <span className="text-[10px] uppercase tracking-widest text-muted">{centerLabel}</span>}
       </div>
     </div>
   );
 }
 
-/* ---- Horizontal priority bars ---- */
-export function PriorityBars({ data }: { data: { name: string; value: number; color: string }[] }) {
+/* ---- Horizontal bars (priority, source, level breakdowns) ---- */
+export function PriorityBars({
+  data,
+  height = 160,
+  labelWidth = 64,
+}: {
+  data: { name: string; value: number; color: string }[];
+  height?: number;
+  labelWidth?: number;
+}) {
   return (
-    <ResponsiveContainer width="100%" height={160}>
-      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }} barSize={18}>
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 0 }} barSize={16}>
         <XAxis type="number" hide allowDecimals={false} />
-        <YAxis type="category" dataKey="name" tick={{ fill: "var(--muted)", fontSize: 12 }} axisLine={false} tickLine={false} width={64} />
+        <YAxis type="category" dataKey="name" tick={{ fill: "var(--muted)", fontSize: 12 }} axisLine={false} tickLine={false} width={labelWidth} />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--surface-2)" }} />
         <Bar isAnimationActive={false} dataKey="value" name="Items" radius={[4, 4, 4, 4]}>
           {data.map((d, i) => (
