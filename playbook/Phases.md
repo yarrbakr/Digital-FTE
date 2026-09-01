@@ -14,10 +14,11 @@
 - [x] Orchestrator: pick `NEW` items → analyze via provider → `Draft` + priority → `PENDING_APPROVAL`. **Verified end-to-end with live Mistral.**
 - [x] Approval state machine (approve/reject) + pluggable `executor` seam (simulated send for now).
 - [x] Pipeline API: ingest / process / list / detail / approve / reject / execute / logs.
-- [ ] `Watcher` interface + `GmailWatcher` (writes Items to DB) — needs Gmail OAuth.
-- [ ] `SlackWatcher` (Slack Bot API) — needs Slack bot token.
-- [ ] Real Gmail/Slack executors registered into the `executor` seam.
-- [ ] In-process APScheduler wiring the whole pipeline on a timer.
+- [x] `GmailWatcher` (IMAP + App Password, stdlib) writes unseen mail to DB; dedup by Message-ID.
+- [x] `SlackWatcher` (bot token, `slack_sdk`) reads member channels; per-channel ts cursor.
+- [x] Real Gmail (SMTP) / Slack (chat.postMessage) executors registered into the `executor` seam; simulate if unconnected.
+- [x] In-process APScheduler tick: poll channels → analyze/draft (execution stays human-approved).
+- [x] Encrypted credential store (Fernet) + Connections API + dashboard Connections UI + "Check now".
 
 ## Phase 2 — Web dashboard (Next.js) ✅
 - [x] Dashboard shell (sidebar + design tokens, light/dark) + typed API client to FastAPI (+ CORS).

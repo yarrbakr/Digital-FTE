@@ -15,10 +15,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app import __version__
+from app.actions import register_all as register_executors
+from app.api.connections import router as connections_router
 from app.api.items import router as items_router
 from app.config import get_settings
 from app.db.database import init_db
 from app.providers import ProviderError, available_providers, get_provider
+from app.services import scheduler
 
 settings = get_settings()
 
@@ -26,7 +29,10 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    register_executors()  # wire real Gmail/Slack senders into the executor seam
+    scheduler.start()  # begin the watch → draft heartbeat (no-op if no channels)
     yield
+    scheduler.stop()
 
 
 app = FastAPI(title=settings.app_name, version=__version__, lifespan=lifespan)
@@ -44,6 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(items_router)
+app.include_router(connections_router)
 
 
 @app.get("/health")
@@ -60,6 +67,8 @@ def config() -> dict:
         "api_key_set": bool(settings.llm_api_key),
         "poll_interval_seconds": settings.poll_interval_seconds,
         "database_url": settings.database_url,
+        "scheduler_enabled": settings.scheduler_enabled,
+        "scheduler_running": scheduler.is_running(),
     }
 
 

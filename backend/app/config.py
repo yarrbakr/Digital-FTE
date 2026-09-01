@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     secret_key: str = ""
 
     # --- Pipeline ---
+    scheduler_enabled: bool = True
     poll_interval_seconds: int = 120
     priority_keywords: str = (
         "urgent,asap,immediately,important,deadline,critical,"

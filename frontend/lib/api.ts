@@ -56,6 +56,23 @@ export interface AppConfig {
   api_key_set: boolean;
   poll_interval_seconds: number;
   database_url: string;
+  scheduler_enabled: boolean;
+  scheduler_running: boolean;
+}
+
+export interface Connection {
+  id: number;
+  kind: string; // "gmail" | "slack" | "provider"
+  name: string;
+  status: string; // "connected" | "error" | "disconnected"
+  updated_at: string;
+}
+
+export interface WatchResult {
+  gmail?: number;
+  slack?: number;
+  gmail_error?: string;
+  slack_error?: string;
 }
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -101,4 +118,19 @@ export const api = {
       method: "POST",
     }),
   getLogs: (limit = 50) => req<LogEntry[]>(`/api/logs?limit=${limit}`),
+
+  listConnections: () => req<Connection[]>("/api/connections"),
+  connectGmail: (email: string, app_password: string) =>
+    req<Connection>("/api/connections/gmail", {
+      method: "POST",
+      body: JSON.stringify({ email, app_password }),
+    }),
+  connectSlack: (bot_token: string) =>
+    req<Connection>("/api/connections/slack", {
+      method: "POST",
+      body: JSON.stringify({ bot_token }),
+    }),
+  deleteConnection: (kind: string) =>
+    req<{ deleted: string }>(`/api/connections/${kind}`, { method: "DELETE" }),
+  runWatch: () => req<WatchResult>("/api/watch/run", { method: "POST" }),
 };

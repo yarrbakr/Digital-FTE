@@ -5,8 +5,8 @@
 > Keep it current — future sessions rely on it.
 
 ## Current status
-- **Phase:** Phase 2 ✅ dashboard done → Phase 1 remainder next (real Gmail/Slack + scheduler)
-- **Last updated:** 2026-08-31
+- **Phase:** Phase 1 ✅ complete (real Gmail + Slack + scheduler wired) → Phase 3 next (Docker one-command install)
+- **Last updated:** 2026-09-01
 - **How to run:** backend → `cd backend && uv run uvicorn app.main:app` (:8000); frontend → `cd frontend && npm run dev` (:3000).
 - **One-liner:** A provider-agnostic autonomous AI employee that watches Gmail & Slack, drafts actions with the AI provider of your choice, routes them through human approval, and executes them — self-hostable in one command.
 
@@ -30,9 +30,10 @@
 - **Phase 2 — Dashboard.** ✅ Next.js 16 + React 19 + Tailwind v4. Overview (stat cards + actions + activity), Inbox (list + detail + approve/reject + simulate modal), Activity, Settings. Typed API client + CORS. Driven in-browser end-to-end with live Mistral (simulate → process → pending → approve).
 
 ## Next up
-- **Phase 1 remainder:** real `GmailWatcher` (needs Gmail OAuth `credentials.json`) + `SlackWatcher` (needs Slack bot token) writing Items to DB; register real Gmail/Slack executors into the `executor` seam; APScheduler loop; a Connections UI to enter creds.
-- **Phase 3:** Docker Compose one-command install + product README.
+- **Phase 3:** Docker Compose one-command install + product README (the sellable download).
 - Mistral key is set and working in `backend/.env`.
+- **Gmail = IMAP + App Password** (chose over OAuth for the test account: 2-min setup, $0, no Google Cloud project). Trade-off: per-account, not the multi-tenant path — revisit OAuth for hosted SaaS (Phase 4).
+- **Connect creds in the dashboard → Settings → Channels** (stored encrypted via Fernet in `.fte_key`).
 
 ## Open questions / bugs
 - Product name: using **"Digital FTE"** (Full-Time Employee) for now — confirm or rename.
@@ -64,3 +65,10 @@
 - **Result:** ✅ Scaffolded Next.js 16 (React 19, Tailwind v4). Built design tokens (light/dark), Sidebar, ui primitives, typed api client; Overview/Inbox/Activity/Settings pages; added CORS to backend. Ran both servers and drove the full loop in the browser with LIVE Mistral: simulate incoming gmail → Process new → analyzer set high priority + drafted reply → item moved to Pending → approval screen with Approve/Reject shown. Looks polished and sellable.
 - **Errors/fixes:** first backend bg-start double-forked via trailing `&` (orphaned but serving); second bind failed (port in use) — harmless, one instance serves :8000. Browser ref clicks occasionally needed coordinate fallback after re-render.
 - **Next:** Phase 1 remainder (real Gmail/Slack + scheduler + connections UI), then Phase 3 (Docker one-command install).
+
+### 2026-09-01 — Session 2 — Phase 1 remainder: real Gmail + Slack + scheduler
+- **Attempted:** wire real channels + the automatic scheduler + a credential store & Connections UI. User chose **Gmail = IMAP + App Password** (over OAuth) for the test account.
+- **Result:** ✅ Built: `services/crypto.py` (Fernet, key in git-ignored `.fte_key` or derived from `SECRET_KEY`); `services/connections.py` (encrypted connection CRUD + KV cursor store); `watchers/gmail.py` (IMAP unseen fetch, stdlib, Message-ID dedup, marks \Seen) + `watchers/slack.py` (`slack_sdk`, member channels, per-channel ts cursor); `services/watch.py` (poll all connected); `actions/gmail_send.py` (SMTP reply, threaded) + `actions/slack_post.py` (in-thread post) + `actions/__init__.register_all` (into executor seam, simulate if unconnected); `services/scheduler.py` (APScheduler BackgroundScheduler tick = watch → process, NOT auto-execute); `api/connections.py` (list / connect gmail+slack with live validation / delete / `POST /api/watch/run`). Wired routers + `register_executors()` + `scheduler.start/stop` into `main.py` lifespan; `/api/config` now reports scheduler state. Frontend: `lib/api.ts` connection types+methods; Settings page rebuilt with Gmail/Slack connect forms, status pills, disconnect, and "Check for new messages now"; `.fte-input` promoted to `globals.css`. Added `scheduler_enabled` to config; `.fte_key` git-ignored.
+- **Verified:** backend imports clean; crypto encrypt/decrypt roundtrips; TestClient shows scheduler_running=true, empty connections, `watch/run`={} with none connected, and **bad Gmail creds → 400 with a live IMAP `AUTHENTICATIONFAILED`** (proves the real IMAP path). Frontend `tsc --noEmit` clean.
+- **Not yet done by user:** connect a real test Gmail (needs App Password) + Slack (needs bot token) and drive a live send. Setup steps handed to the user.
+- **Next:** user connects the test creds & we verify a live send; then **Phase 3** (Docker one-command install).

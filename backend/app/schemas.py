@@ -52,3 +52,21 @@ class LogOut(BaseModel):
     message: str
     item_id: int | None
     created_at: datetime
+
+
+class GmailConnectIn(BaseModel):
+    email: str
+    app_password: str
+
+
+class SlackConnectIn(BaseModel):
+    bot_token: str
+
+
+class ConnectionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    kind: str
+    name: str
+    status: str
+    updated_at: datetime
