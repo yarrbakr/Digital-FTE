@@ -31,6 +31,14 @@ export function SplitButton({
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  // The joined control glows as one unit in its own semantic color.
+  const glow =
+    variant === "success"
+      ? "var(--green)"
+      : variant === "danger"
+        ? "var(--red)"
+        : "var(--accent)";
+
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
@@ -47,13 +55,17 @@ export function SplitButton({
 
   return (
     <div className="relative inline-flex" ref={ref}>
-      {/* One elevated control: shared shadow on the wrapper, seamless segments. */}
-      <div className="inline-flex rounded-lg shadow-md shadow-black/25 transition-shadow duration-200 hover:shadow-lg hover:shadow-black/30">
+      {/* One elevated control: a shared colored glow on the wrapper, seamless
+          segments (each segment stays flat and cancels its own glow/lift). */}
+      <div
+        className="inline-flex rounded-lg transition-[transform,box-shadow] duration-200 ease-out shadow-[0_4px_16px_-4px_color-mix(in_oklab,var(--glow-color)_50%,transparent)] hover:-translate-y-px hover:shadow-[0_12px_36px_-8px_color-mix(in_oklab,var(--glow-color)_68%,transparent)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        style={{ ["--glow-color" as string]: glow }}
+      >
         <SmoothButton
           variant={variant}
           disabled={disabled}
           onClick={primary.onClick}
-          className="rounded-r-none shadow-none hover:translate-y-0"
+          className="rounded-r-none shadow-none hover:translate-y-0 hover:shadow-none"
         >
           {primary.icon}
           {primary.label}
@@ -65,7 +77,7 @@ export function SplitButton({
           aria-label="More actions"
           aria-haspopup="menu"
           aria-expanded={open}
-          className="relative rounded-l-none px-2 shadow-none hover:translate-y-0 before:absolute before:left-0 before:top-1/2 before:h-5 before:w-px before:-translate-y-1/2 before:bg-white/25 before:content-['']"
+          className="rounded-l-none px-2 shadow-none hover:translate-y-0 hover:shadow-none before:absolute before:left-0 before:top-1/2 before:z-20 before:h-5 before:w-px before:-translate-y-1/2 before:bg-white/25 before:content-['']"
         >
           <ChevronDown
             className={cn(
