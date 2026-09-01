@@ -91,3 +91,8 @@
 - **Result:** ✅ Rewrote `app/inbox/page.tsx` (compact header with filter pills + live counts, channel-icon list rows w/ priority dots, cleaner detail, SmoothButton approve/reject/execute, icon channel toggle in the simulate modal) — and **fixed the misleading "No draft yet → run Process new" copy**: Done items now read "Triaged — the AI judged this needs no reply." Rewrote `app/settings/page.tsx` (header + "Check now", channel cards w/ Mail/Hash icons + status dots, provider/storage cards, trimmed prose) and `app/logs/page.tsx` (header + event/error count pills). Deleted now-unused `components/PageHeader.tsx`.
 - **Verified in-browser:** Inbox (pending item → AI draft + reasoning + green Approve/red Reject; Done item → new triaged copy), Settings (both channels connected, provider/storage), no console errors, tsc clean.
 - **Next:** **push** (awaiting user's yes) then **Phase 3** (Docker one-command install).
+
+### 2026-09-01 — Session 2 (cont.) — charts on every tab
+- **Attempted:** user noted Inbox/Activity had the styling but no actual graphs; add charts there too.
+- **Result:** ✅ Inbox got an analytics strip (Priority donut, Channels donut, Status bars from loaded items); Activity got a By-level donut (info/error/warn) + By-source bars over the log feed. Generalized `Donut`/`PriorityBars` with height/radius/label-width props for compact strips. Verified in-browser, no console errors, tsc clean. Commit `dd3783f`.
+- **Next:** **push** (awaiting yes) then **Phase 3**.
