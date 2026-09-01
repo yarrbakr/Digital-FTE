@@ -2,59 +2,57 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Activity, Inbox, LayoutGrid, Settings } from "lucide-react";
+import type { ComponentType } from "react";
 
-const NAV = [
-  { href: "/", label: "Overview", icon: "▦" },
-  { href: "/inbox", label: "Inbox", icon: "✉" },
-  { href: "/logs", label: "Activity", icon: "≣" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
+const NAV: { href: string; label: string; Icon: ComponentType<{ size?: number }> }[] = [
+  { href: "/", label: "Overview", Icon: LayoutGrid },
+  { href: "/inbox", label: "Inbox", Icon: Inbox },
+  { href: "/logs", label: "Activity", Icon: Activity },
+  { href: "/settings", label: "Settings", Icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex w-60 shrink-0 flex-col border-r bg-surface px-4 py-5">
-      <div className="flex items-center gap-2.5 px-2 pb-6">
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-accent-fg"
-          style={{ background: "var(--accent)" }}
-        >
-          FTE
-        </div>
-        <div>
-          <div className="text-sm font-semibold leading-tight">Digital FTE</div>
-          <div className="text-xs text-muted leading-tight">AI Employee</div>
-        </div>
-      </div>
+    <aside className="hidden md:flex w-16 shrink-0 flex-col items-center border-r bg-surface py-4">
+      <Link
+        href="/"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-[11px] font-bold text-accent-fg"
+        style={{ background: "var(--accent)" }}
+        title="Digital FTE"
+      >
+        FTE
+      </Link>
 
-      <nav className="flex flex-col gap-1">
-        {NAV.map((item) => {
-          const active =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+      <nav className="mt-6 flex flex-1 flex-col items-center gap-2">
+        {NAV.map(({ href, label, Icon }) => {
+          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                active
-                  ? "bg-accent-soft text-accent"
-                  : "text-muted hover:bg-surface-2 hover:text-fg"
+              key={href}
+              href={href}
+              title={label}
+              aria-label={label}
+              className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                active ? "bg-accent-soft text-accent" : "text-muted hover:bg-surface-2 hover:text-fg"
               }`}
             >
-              <span className="w-4 text-center opacity-80">{item.icon}</span>
-              {item.label}
+              <Icon size={19} />
+              <span className="pointer-events-none absolute left-12 z-10 whitespace-nowrap rounded-md border bg-surface px-2 py-1 text-xs font-medium text-fg opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                {label}
+              </span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto rounded-lg border bg-surface-2 px-3 py-2.5 text-xs text-muted">
-        <div className="font-medium text-fg">Self-hosted</div>
-        Runs on your machine. Your data stays local.
-      </div>
+      <span
+        className="mt-auto h-2 w-2 rounded-full"
+        style={{ background: "var(--green)" }}
+        title="Self-hosted · running locally"
+      />
     </aside>
   );
 }

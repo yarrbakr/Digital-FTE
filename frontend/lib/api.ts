@@ -60,6 +60,28 @@ export interface AppConfig {
   scheduler_running: boolean;
 }
 
+export interface ThroughputPoint {
+  date: string;
+  label: string;
+  count: number;
+  gmail: number;
+  slack: number;
+}
+
+export interface Stats {
+  total: number;
+  pending_approval: number;
+  queued: number;
+  handled: number;
+  new: number;
+  failed: number;
+  approval_rate: number;
+  by_status: Record<ItemStatus, number>;
+  by_priority: Record<Priority, number>;
+  by_channel: Record<string, number>;
+  throughput: ThroughputPoint[];
+}
+
 export interface Connection {
   id: number;
   kind: string; // "gmail" | "slack" | "provider"
@@ -118,6 +140,7 @@ export const api = {
       method: "POST",
     }),
   getLogs: (limit = 50) => req<LogEntry[]>(`/api/logs?limit=${limit}`),
+  getStats: () => req<Stats>("/api/stats"),
 
   listConnections: () => req<Connection[]>("/api/connections"),
   connectGmail: (email: string, app_password: string) =>

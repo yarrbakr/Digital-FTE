@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.db import models
 from app.db.database import get_session
 from app.schemas import ItemCreate, ItemDetailOut, ItemOut, LogOut
-from app.services import pipeline
+from app.services import pipeline, stats
 
 router = APIRouter(prefix="/api", tags=["pipeline"])
 
@@ -88,6 +88,12 @@ def reject(item_id: int, session: Session = Depends(get_session)) -> models.Item
 def execute(session: Session = Depends(get_session)) -> dict:
     """Execute all APPROVED items on their channel."""
     return pipeline.execute_approved(session)
+
+
+@router.get("/stats")
+def get_stats(session: Session = Depends(get_session)) -> dict:
+    """Aggregated metrics for the dashboard charts."""
+    return stats.get_stats(session)
 
 
 @router.get("/logs", response_model=list[LogOut])

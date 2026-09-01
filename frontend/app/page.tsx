@@ -2,20 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { api, type AppConfig, type Item, type ItemStatus, type LogEntry } from "@/lib/api";
-import { PageHeader } from "@/components/PageHeader";
-import { Button, Card, PriorityBadge, StatusBadge } from "@/components/ui";
-
-const STAT_CARDS: { key: ItemStatus; label: string; hint: string; color: string }[] = [
-  { key: "new", label: "To process", hint: "Waiting for the AI", color: "var(--slate)" },
-  { key: "pending_approval", label: "Needs your approval", hint: "Drafts ready to review", color: "var(--amber)" },
-  { key: "approved", label: "Queued to send", hint: "Approved, awaiting execution", color: "var(--blue)" },
-  { key: "done", label: "Completed", hint: "Handled end-to-end", color: "var(--green)" },
-];
+import { Play, Send } from "lucide-react";
+import { api, type AppConfig, type Item, type Stats } from "@/lib/api";
+import { Card } from "@/components/ui";
+import { SmoothButton } from "@/components/ui/smooth-button";
+import { Donut, Gauge, MiniBars, PriorityBars, ThroughputChart } from "@/components/charts";
 
 export default function OverviewPage() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [pending, setPending] = useState<Item[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,9 +18,13 @@ export default function OverviewPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const [i, l, c] = await Promise.all([api.listItems(), api.getLogs(8), api.getConfig()]);
-      setItems(i);
-      setLogs(l);
+      const [s, p, c] = await Promise.all([
+        api.getStats(),
+        api.listItems("pending_approval"),
+        api.getConfig(),
+      ]);
+      setStats(s);
+      setPending(p);
       setConfig(c);
       setOnline(true);
     } catch {
@@ -38,8 +37,6 @@ export default function OverviewPage() {
     const t = setInterval(refresh, 5000);
     return () => clearInterval(t);
   }, [refresh]);
-
-  const count = (s: ItemStatus) => items.filter((i) => i.status === s).length;
 
   async function run(label: string, fn: () => Promise<unknown>) {
     setBusy(label);
@@ -54,121 +51,178 @@ export default function OverviewPage() {
     }
   }
 
-  return (
-    <>
-      <PageHeader title="Overview" subtitle="Your AI employee at a glance">
-        <Button
-          onClick={() => run("process", api.processItems)}
-          disabled={busy !== null}
-          variant="primary"
-        >
-          {busy === "process" ? "Processing…" : "Process new"}
-        </Button>
-        <Button
-          onClick={() => run("execute", api.execute)}
-          disabled={busy !== null}
-          variant="success"
-        >
-          {busy === "execute" ? "Sending…" : "Execute approved"}
-        </Button>
-      </PageHeader>
+  const spark = (stats?.throughput ?? []).map((t) => t.count);
+  const statusData = stats
+    ? [
+        { name: "done", value: stats.by_status.done, color: "var(--green)" },
+        { name: "pending", value: stats.by_status.pending_approval, color: "var(--amber)" },
+        { name: "approved", value: stats.by_status.approved, color: "var(--blue)" },
+        { name: "new", value: stats.by_status.new, color: "var(--slate)" },
+        { name: "failed", value: stats.by_status.failed, color: "var(--red)" },
+      ].filter((d) => d.value > 0)
+    : [];
+  const channelData = stats
+    ? [
+        { name: "gmail", value: stats.by_channel.gmail ?? 0, color: "var(--accent)" },
+        { name: "slack", value: stats.by_channel.slack ?? 0, color: "var(--green)" },
+      ].filter((d) => d.value > 0)
+    : [];
+  const priorityData = stats
+    ? [
+        { name: "High", value: stats.by_priority.high, color: "var(--red)" },
+        { name: "Medium", value: stats.by_priority.medium, color: "var(--amber)" },
+        { name: "Low", value: stats.by_priority.low, color: "var(--slate)" },
+      ]
+    : [];
 
-      <div className="mx-auto max-w-6xl px-6 py-6 md:px-8">
+  return (
+    <div className="flex min-h-screen flex-col">
+      {/* Top bar */}
+      <header className="flex items-center gap-4 border-b px-6 py-4 md:px-8">
+        <h1 className="text-base font-semibold">Overview</h1>
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-muted"
+          title={config?.scheduler_running ? "Watching channels" : "Scheduler off"}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${config?.scheduler_running ? "animate-pulse" : ""}`}
+            style={{ background: config?.scheduler_running ? "var(--green)" : "var(--slate)" }}
+          />
+          {config?.scheduler_running ? "Watching" : "Idle"}
+        </span>
+        <div className="ml-auto flex items-center gap-2">
+          <SmoothButton variant="primary" onClick={() => run("process", api.processItems)} disabled={busy !== null}>
+            <Play /> {busy === "process" ? "Processing" : "Process"}
+          </SmoothButton>
+          <SmoothButton variant="success" onClick={() => run("execute", api.execute)} disabled={busy !== null}>
+            <Send /> {busy === "execute" ? "Sending" : "Execute"}
+          </SmoothButton>
+        </div>
+      </header>
+
+      <div className="mx-auto w-full max-w-7xl px-6 py-6 md:px-8">
         {!online && (
-          <Banner tone="red">
-            Can’t reach the backend at <code>{process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}</code>. Is it running?
-          </Banner>
+          <Banner tone="red">Backend offline — start it on <code>:8000</code>.</Banner>
         )}
         {config && !config.api_key_set && online && (
-          <Banner tone="amber">
-            No AI provider key set. Add <code>LLM_API_KEY</code> to <code>backend/.env</code> so the AI can draft.
-          </Banner>
+          <Banner tone="amber">No AI key set. Add <code>LLM_API_KEY</code> to <code>backend/.env</code>.</Banner>
         )}
         {error && <Banner tone="red">{error}</Banner>}
 
-        {/* Stat grid */}
+        {/* KPI tiles */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {STAT_CARDS.map((s) => (
-            <Card key={s.key} className="p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">{s.label}</span>
-                <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
-              </div>
-              <div className="mt-3 text-3xl font-semibold tabular-nums">{count(s.key)}</div>
-              <div className="mt-1 text-xs text-muted">{s.hint}</div>
-            </Card>
-          ))}
+          <Kpi label="Handled" value={stats?.handled ?? 0}>
+            <MiniBars data={spark} color="var(--green)" />
+          </Kpi>
+          <Kpi label="Pending" value={stats?.pending_approval ?? 0}>
+            <MiniBars data={spark} color="var(--amber)" />
+          </Kpi>
+          <Kpi label="Queued" value={stats?.queued ?? 0}>
+            <MiniBars data={spark} color="var(--blue)" />
+          </Kpi>
+          <Kpi label="Approval rate" value={`${stats?.approval_rate ?? 0}%`}>
+            <Gauge value={stats?.approval_rate ?? 0} color="var(--accent)" />
+          </Kpi>
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          {/* Needs approval */}
-          <Card className="lg:col-span-2">
+        {/* Throughput + Status */}
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <ChartCard title="Throughput" hint="14 days" className="lg:col-span-2">
+            <ThroughputChart data={stats?.throughput ?? []} />
+            <Legend items={[{ label: "Gmail", color: "var(--accent)" }, { label: "Slack", color: "var(--green)" }]} />
+          </ChartCard>
+          <ChartCard title="Status">
+            <Donut data={statusData} centerValue={stats?.total ?? 0} centerLabel="total" />
+            <Legend items={statusData.map((d) => ({ label: d.name, color: d.color }))} />
+          </ChartCard>
+        </div>
+
+        {/* Priority + Channels + Needs approval */}
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <ChartCard title="Priority">
+            <PriorityBars data={priorityData} />
+          </ChartCard>
+          <ChartCard title="Channels">
+            <Donut data={channelData} centerValue={(stats?.by_channel.gmail ?? 0) + (stats?.by_channel.slack ?? 0)} centerLabel="items" />
+            <Legend items={channelData.map((d) => ({ label: d.name, color: d.color }))} />
+          </ChartCard>
+
+          <Card className="flex flex-col">
             <div className="flex items-center justify-between border-b px-5 py-3.5">
-              <h2 className="text-sm font-semibold">Waiting for your approval</h2>
-              <Link href="/inbox" className="text-xs font-medium text-accent hover:underline">
-                Open inbox →
-              </Link>
+              <h2 className="text-sm font-semibold">Needs approval</h2>
+              <span
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{ background: "var(--amber-soft)", color: "var(--amber)" }}
+              >
+                {pending.length}
+              </span>
             </div>
-            <div className="divide-y">
-              {items.filter((i) => i.status === "pending_approval").slice(0, 5).map((i) => (
-                <Link
-                  key={i.id}
-                  href={`/inbox?item=${i.id}`}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2"
-                >
-                  <PriorityBadge priority={i.priority} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{i.subject || "(no subject)"}</div>
-                    <div className="truncate text-xs text-muted">{i.sender}</div>
-                  </div>
-                  <span className="text-xs text-muted">{i.channel}</span>
+            <div className="flex-1 divide-y">
+              {pending.slice(0, 5).map((i) => (
+                <Link key={i.id} href={`/inbox?item=${i.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-surface-2">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: i.priority === "high" ? "var(--red)" : i.priority === "medium" ? "var(--amber)" : "var(--slate)" }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{i.subject || "(no subject)"}</span>
+                  <span className="text-[11px] uppercase text-muted">{i.channel}</span>
                 </Link>
               ))}
-              {items.filter((i) => i.status === "pending_approval").length === 0 && (
-                <div className="px-5 py-10 text-center text-sm text-muted">
-                  Nothing waiting. You’re all caught up. ✨
+              {pending.length === 0 && (
+                <div className="flex flex-1 items-center justify-center px-5 py-10 text-center text-sm text-muted">
+                  All caught up ✨
                 </div>
               )}
             </div>
           </Card>
-
-          {/* Recent activity */}
-          <Card>
-            <div className="border-b px-5 py-3.5">
-              <h2 className="text-sm font-semibold">Recent activity</h2>
-            </div>
-            <ul className="divide-y">
-              {logs.map((l) => (
-                <li key={l.id} className="px-5 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: l.level === "error" ? "var(--red)" : "var(--green)" }}
-                    />
-                    <span className="text-xs font-medium text-muted">{l.source}</span>
-                  </div>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-fg">{l.message}</p>
-                </li>
-              ))}
-              {logs.length === 0 && (
-                <li className="px-5 py-10 text-center text-sm text-muted">No activity yet.</li>
-              )}
-            </ul>
-          </Card>
         </div>
-
-        {config && (
-          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted">
-            <span>Provider: <span className="font-medium text-fg">{config.provider}</span></span>
-            <span>Model: <span className="font-medium text-fg">{config.model}</span></span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: online ? "var(--green)" : "var(--red)" }} />
-              {online ? "Backend connected" : "Backend offline"}
-            </span>
-          </div>
-        )}
       </div>
-    </>
+    </div>
+  );
+}
+
+function Kpi({ label, value, children }: { label: string; value: number | string; children: React.ReactNode }) {
+  return (
+    <Card className="p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">{label}</div>
+      <div className="mt-1 text-3xl font-semibold tabular-nums">{value}</div>
+      <div className="mt-2">{children}</div>
+    </Card>
+  );
+}
+
+function ChartCard({
+  title,
+  hint,
+  className = "",
+  children,
+}: {
+  title: string;
+  hint?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className={`p-5 ${className}`}>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {hint && <span className="text-[11px] uppercase tracking-wider text-muted">{hint}</span>}
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+function Legend({ items }: { items: { label: string; color: string }[] }) {
+  return (
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+      {items.map((it) => (
+        <span key={it.label} className="flex items-center gap-1.5 text-xs capitalize text-muted">
+          <span className="h-2 w-2 rounded-full" style={{ background: it.color }} />
+          {it.label}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -176,7 +230,7 @@ function Banner({ tone, children }: { tone: "red" | "amber"; children: React.Rea
   const bg = tone === "red" ? "var(--red-soft)" : "var(--amber-soft)";
   const fg = tone === "red" ? "var(--red)" : "var(--amber)";
   return (
-    <div className="mb-5 rounded-lg px-4 py-3 text-sm" style={{ background: bg, color: fg }}>
+    <div className="mb-4 rounded-lg px-4 py-3 text-sm" style={{ background: bg, color: fg }}>
       {children}
     </div>
   );
